@@ -84,6 +84,13 @@
             background: linear-gradient(135deg, #4CAF50, #45a049);
         }
 
+        .admin-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -156,6 +163,8 @@
     </style>
 </head>
 <body>
+    <button class="btn admin-btn" onclick="goToAdmin()">🔐 Admin Girişi</button>
+
     <div class="container">
         <h1>📄 Evrak Yükleme Sistemi</h1>
         
@@ -195,18 +204,29 @@
         </div>
         
         <div class="form-group">
-            <label for="documentType">📋 Evrak Türü:</label>
-            <input type="text" id="documentType" placeholder="Kimlik, Fatura, Sözleşme, vb.">
+            <label for="customerPhone">📞 Telefon Numarası:</label>
+            <input type="tel" id="customerPhone" placeholder="05XX XXX XX XX">
         </div>
 
-        <button class="btn" onclick="goToGoogleForms()" style="width: 100%; padding: 15px; font-size: 18px;">
-            📤 Google Forms ile Gönder
+        <div class="form-group">
+            <label for="documentType">📋 Evrak Türü:</label>
+            <select id="documentType" style="width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;">
+                <option value="">Seçiniz</option>
+                <option value="Kimlik">Kimlik</option>
+                <option value="Fatura">Fatura</option>
+                <option value="Sözleşme">Sözleşme</option>
+                <option value="Diğer">Diğer</option>
+            </select>
+        </div>
+
+        <button class="btn" onclick="saveDocument()" style="width: 100%; padding: 15px; font-size: 18px;">
+            📤 Evrakı Gönder
         </button>
         
         <div class="preview" id="previewArea"></div>
         <div class="file-info" id="fileInfo"></div>
         <div class="success-message" id="successMessage">
-            ✅ Google Forms'a yönlendiriliyorsunuz...
+            ✅ Evrakınız başarıyla gönderildi!
         </div>
     </div>
 
@@ -219,6 +239,11 @@
         const cameraContainer = document.getElementById('cameraContainer');
         const cameraPreview = document.getElementById('cameraPreview');
         let stream = null;
+
+        // Admin sayfasına git
+        function goToAdmin() {
+            window.location.href = 'admin.html';
+        }
 
         // Dosya seçildiğinde
         fileInput.addEventListener('change', function(e) {
@@ -244,7 +269,7 @@
                     }
                     reader.readAsDataURL(file);
                 } else if (file.type === 'application/pdf') {
-                    previewArea.innerHTML += `<div style="font-size: 48px; margin: 10px;">📄</div>`;
+                    previewArea.innerHTML += `<div style="font-size: 48px; margin: 10px;">📄</div><p>PDF: ${file.name}</p>`;
                 }
             }
         }
@@ -314,25 +339,77 @@
             cameraContainer.style.display = 'none';
         }
 
-        // Google Forms'a git
-        function goToGoogleForms() {
+        // Evrak kaydetme
+        function saveDocument() {
+            const files = fileInput.files;
             const customerName = document.getElementById('customerName').value;
             const customerEmail = document.getElementById('customerEmail').value;
+            const customerPhone = document.getElementById('customerPhone').value;
             const documentType = document.getElementById('documentType').value;
             
-            if (!customerName || !customerEmail) {
-                alert("Lütfen müşteri bilgilerini eksiksiz doldurun!");
+            if (files.length === 0) {
+                alert("Lütfen en az bir dosya seçin!");
+                return;
+            }
+            
+            if (!customerName || !customerEmail || !documentType) {
+                alert("Lütfen zorunlu alanları doldurun! (Ad, E-posta, Evrak Türü)");
                 return;
             }
 
-            successMessage.style.display = 'block';
-            
-            // 2 saniye sonra Google Forms'a yönlendir
-            setTimeout(() => {
-                // BURAYA GOOGLE FORMS LİNKİNİZİ YAZACAĞIZ
-                const googleFormsLink = "https://forms.gle/ThxiaznjDzwnQzGw5";
-                window.open(googleFormsLink, '_blank');
-            }, 2000);
+            // Dosyaları base64'e çevir
+            const fileReaders = [];
+            const fileData = [];
+
+            for (let file of files) {
+                const reader = new FileReader();
+                fileReaders.push(new Promise((resolve) => {
+                    reader.onload = function(e) {
+                        fileData.push({
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: e.target.result
+                        });
+                        resolve();
+                    };
+                    reader.readAsDataURL(file);
+                }));
+            }
+
+            // Tüm dosyalar okunduktan sonra
+            Promise.all(fileReaders).then(() => {
+                // Evrak verisini oluştur
+                const documentData = {
+                    id: Date.now(),
+                    date: new Date().toLocaleString('tr-TR'),
+                    customerName,
+                    customerEmail,
+                    customerPhone,
+                    documentType,
+                    files: fileData
+                };
+
+                // LocalStorage'a kaydet
+                let existingDocuments = JSON.parse(localStorage.getItem('documents')) || [];
+                existingDocuments.push(documentData);
+                localStorage.setItem('documents', JSON.stringify(existingDocuments));
+
+                // Başarı mesajı
+                successMessage.style.display = 'block';
+                
+                // Formu temizle
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                    fileInput.value = '';
+                    document.getElementById('customerName').value = '';
+                    document.getElementById('customerEmail').value = '';
+                    document.getElementById('customerPhone').value = '';
+                    document.getElementById('documentType').value = '';
+                    previewArea.innerHTML = '';
+                    fileInfo.style.display = 'none';
+                }, 3000);
+            });
         }
 
         // Sürükle-bırak
