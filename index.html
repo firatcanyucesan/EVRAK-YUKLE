@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evrak Yükleme Sistemi</title>
     <style>
+        /* Tüm CSS stilleri aynı kalacak */
         * {
             margin: 0;
             padding: 0;
@@ -189,7 +190,6 @@
             display: none;
         }
 
-        /* Admin Panel Styles */
         .admin-login {
             text-align: center;
             padding: 20px;
@@ -295,7 +295,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Tab Menü -->
         <div class="tabs">
             <button class="tab active" onclick="switchTab('customer')">👤 Müşteri Girişi</button>
             <button class="tab" onclick="switchTab('admin')">🔐 Admin Paneli</button>
@@ -366,7 +365,6 @@
         <div id="admin-tab" class="tab-content">
             <h1>📊 Admin Paneli</h1>
 
-            <!-- Admin Giriş -->
             <div class="admin-login" id="adminLogin">
                 <h3>🔐 Admin Girişi</h3>
                 <p>Lütfen admin şifrenizi giriniz</p>
@@ -379,7 +377,6 @@
                 <button class="btn" onclick="checkAdminPassword()">Giriş Yap</button>
             </div>
 
-            <!-- Admin Panel -->
             <div id="adminPanel" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
                     <h2>Evrak Yönetimi</h2>
@@ -391,7 +388,6 @@
 
                 <div class="success-message" id="adminSuccessMessage"></div>
 
-                <!-- İstatistikler -->
                 <div class="stats" id="statsSection">
                     <div class="stat-card">
                         <div class="stat-number" id="totalDocuments">0</div>
@@ -411,7 +407,6 @@
                     </div>
                 </div>
 
-                <!-- Evrak Listesi -->
                 <div class="document-list">
                     <h3>📋 Evrak Listesi</h3>
                     <div id="documentsContainer">
@@ -423,28 +418,30 @@
     </div>
 
     <script>
-        // GLOBAL DEĞİŞKEN - Tüm veriler burada saklanacak
-        let allDocuments = [];
         const ADMIN_PASSWORD = "firat123*";
         let stream = null;
 
+        // Sayfa yüklendiğinde SessionStorage'dan verileri al
+        function initializeApp() {
+            // SessionStorage'dan evrakları yükle
+            const savedDocuments = sessionStorage.getItem('evrakYuklemeDocuments');
+            if (!savedDocuments) {
+                sessionStorage.setItem('evrakYuklemeDocuments', JSON.stringify([]));
+            }
+        }
+
         // Tab değiştirme
         function switchTab(tabName) {
-            // Tüm tab içeriklerini gizle
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
-            
-            // Tüm tab butonlarını pasif yap
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // Seçilen tab'ı aktif yap
             document.getElementById(tabName + '-tab').classList.add('active');
             event.target.classList.add('active');
 
-            // Admin tab'ına geçildiğinde verileri yükle
             if (tabName === 'admin') {
                 loadAdminData();
             }
@@ -503,7 +500,6 @@
                 document.getElementById('cameraContainer').style.display = 'block';
             } catch (err) {
                 alert('Kamera erişim izni gerekiyor. Lütfen tarayıcı ayarlarından kameraya izin verin.');
-                console.error('Kamera hatası:', err);
             }
         }
 
@@ -521,7 +517,6 @@
                     type: 'image/jpeg' 
                 });
                 
-                // Dosya listesine ekle
                 const fileInput = document.getElementById('fileInput');
                 const dataTransfer = new DataTransfer();
                 if (fileInput.files) {
@@ -532,11 +527,8 @@
                 dataTransfer.items.add(file);
                 fileInput.files = dataTransfer.files;
                 
-                // Önizleme göster
                 showPreview(fileInput.files);
                 showFileInfo(fileInput.files);
-                
-                // Kamerayı kapat
                 closeCamera();
             }, 'image/jpeg', 0.8);
         }
@@ -549,7 +541,7 @@
             document.getElementById('cameraContainer').style.display = 'none';
         }
 
-        // Evrak kaydetme
+        // Evrak kaydetme - SESSIONSTORAGE KULLANIYORUZ!
         function saveDocument() {
             const files = document.getElementById('fileInput').files;
             const customerName = document.getElementById('customerName').value;
@@ -566,7 +558,6 @@
                 return;
             }
 
-            // Dosyaları base64'e çevir
             const fileReaders = [];
             const fileData = [];
 
@@ -586,9 +577,7 @@
                 }));
             }
 
-            // Tüm dosyalar okunduktan sonra
             Promise.all(fileReaders).then(() => {
-                // Evrak verisini oluştur
                 const documentData = {
                     id: Date.now(),
                     date: new Date().toLocaleString('tr-TR'),
@@ -598,14 +587,14 @@
                     files: fileData
                 };
 
-                // GLOBAL diziye kaydet (LocalStorage YOK!)
-                allDocuments.push(documentData);
+                // SESSIONSTORAGE'A KAYDET
+                const existingDocuments = JSON.parse(sessionStorage.getItem('evrakYuklemeDocuments') || '[]');
+                existingDocuments.push(documentData);
+                sessionStorage.setItem('evrakYuklemeDocuments', JSON.stringify(existingDocuments));
 
-                // Başarı mesajı
                 const successMessage = document.getElementById('successMessage');
                 successMessage.style.display = 'block';
                 
-                // Formu temizle
                 setTimeout(() => {
                     successMessage.style.display = 'none';
                     document.getElementById('fileInput').value = '';
@@ -638,11 +627,12 @@
             }
         }
 
-        // Admin verilerini yükle
+        // Admin verilerini yükle - SESSIONSTORAGE'DAN OKUYORUZ!
         function loadAdminData() {
+            const documents = JSON.parse(sessionStorage.getItem('evrakYuklemeDocuments') || '[]');
             const container = document.getElementById('documentsContainer');
             
-            if (allDocuments.length === 0) {
+            if (documents.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div style="font-size: 48px; margin-bottom: 20px;">📭</div>
@@ -652,14 +642,13 @@
                 `;
             } else {
                 container.innerHTML = '';
-                // En yeni evraklar üstte görünsün
-                [...allDocuments].reverse().forEach(doc => {
+                documents.reverse().forEach(doc => {
                     const documentElement = createDocumentElement(doc);
                     container.appendChild(documentElement);
                 });
             }
             
-            updateAdminStats();
+            updateAdminStats(documents);
         }
 
         // Evrak kartı oluştur
@@ -696,15 +685,15 @@
         }
 
         // İstatistikleri güncelle
-        function updateAdminStats() {
+        function updateAdminStats(documents) {
             const today = new Date().toLocaleDateString('tr-TR');
-            const todayDocuments = allDocuments.filter(doc => 
+            const todayDocuments = documents.filter(doc => 
                 new Date(doc.id).toLocaleDateString('tr-TR') === today
             );
-            const totalFiles = allDocuments.reduce((sum, doc) => sum + doc.files.length, 0);
-            const uniqueCustomers = new Set(allDocuments.map(doc => doc.customerName)).size;
+            const totalFiles = documents.reduce((sum, doc) => sum + doc.files.length, 0);
+            const uniqueCustomers = new Set(documents.map(doc => doc.customerName)).size;
 
-            document.getElementById('totalDocuments').textContent = allDocuments.length;
+            document.getElementById('totalDocuments').textContent = documents.length;
             document.getElementById('todayDocuments').textContent = todayDocuments.length;
             document.getElementById('totalFiles').textContent = totalFiles;
             document.getElementById('totalCustomers').textContent = uniqueCustomers;
@@ -720,16 +709,19 @@
 
         // Tüm evrakı indirme
         function downloadDocument(docId) {
-            const doc = allDocuments.find(d => d.id === docId);
+            const documents = JSON.parse(sessionStorage.getItem('evrakYuklemeDocuments') || '[]');
+            const doc = documents.find(d => d.id === docId);
             if (doc && doc.files.length > 0) {
                 downloadFile(doc.files[0].name, doc.files[0].data);
             }
         }
 
-        // Evrak silme
+        // Evrak silme - SESSIONSTORAGE'DAN SİL
         function deleteDocument(docId) {
             if (confirm('Bu evrakı silmek istediğinizden emin misiniz?')) {
-                allDocuments = allDocuments.filter(d => d.id !== docId);
+                let documents = JSON.parse(sessionStorage.getItem('evrakYuklemeDocuments') || '[]');
+                documents = documents.filter(d => d.id !== docId);
+                sessionStorage.setItem('evrakYuklemeDocuments', JSON.stringify(documents));
                 showAdminMessage('Evrak başarıyla silindi!');
                 loadAdminData();
             }
@@ -738,7 +730,7 @@
         // Tüm verileri temizle
         function clearAllData() {
             if (confirm('TÜM evrak verilerini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
-                allDocuments = [];
+                sessionStorage.setItem('evrakYuklemeDocuments', JSON.stringify([]));
                 showAdminMessage('Tüm veriler temizlendi!');
                 loadAdminData();
             }
@@ -783,6 +775,9 @@
             showPreview(files);
             showFileInfo(files);
         });
+
+        // Uygulamayı başlat
+        initializeApp();
     </script>
 </body>
 </html>
