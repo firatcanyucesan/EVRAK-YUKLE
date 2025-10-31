@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evrak Yükleme Sistemi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 25px;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #5a67d8;
+            background: #f0f2ff;
+        }
+
+        .upload-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+            border: 1px solid #a7f3d0;
+        }
+
+        .file-info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 Evrak Yükleme Sistemi</h1>
+        
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📁</div>
+            <h3>Evrakınızı Yükleyin</h3>
+            <p>Dosyalarınızı sürükleyip bırakın veya tıklayarak seçin</p>
+            <p><small>PDF, JPG, PNG desteklenir (Maksimum: 10MB)</small></p>
+        </div>
+
+        <input type="file" id="fileInput" class="file-input" accept=".pdf,.jpg,.jpeg,.png" multiple>
+
+        <div class="form-group">
+            <label for="customerName">👤 Müşteri Adı Soyadı:</label>
+            <input type="text" id="customerName" placeholder="Adınızı ve soyadınızı yazın">
+        </div>
+        
+        <div class="form-group">
+            <label for="customerEmail">📧 E-posta Adresi:</label>
+            <input type="email" id="customerEmail" placeholder="ornek@email.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="documentType">📋 Evrak Türü:</label>
+            <input type="text" id="documentType" placeholder="Kimlik, Fatura, Sözleşme, vb.">
+        </div>
+
+        <button class="btn" onclick="uploadDocument()" style="width: 100%; padding: 15px; font-size: 18px;">
+            📤 Evrakı Gönder
+        </button>
+        
+        <div class="preview" id="previewArea"></div>
+        <div class="file-info" id="fileInfo"></div>
+        <div class="success-message" id="successMessage">
+            ✅ Evrakınız başarıyla yüklendi! En kısa sürede sizinle iletişime geçeceğiz.
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const previewArea = document.getElementById('previewArea');
+        const fileInfo = document.getElementById('fileInfo');
+        const successMessage = document.getElementById('successMessage');
+
+        // Dosya seçildiğinde
+        fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                showPreview(files);
+                showFileInfo(files);
+            }
+        });
+
+        // Dosya önizleme
+        function showPreview(files) {
+            previewArea.innerHTML = '';
+            
+            for (let file of files) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.alt = "Önizleme";
+                        previewArea.appendChild(img);
+                    }
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    previewArea.innerHTML += `<div style="font-size: 48px; margin: 10px;">📄</div>`;
+                }
+            }
+        }
+
+        // Dosya bilgilerini göster
+        function showFileInfo(files) {
+            let infoHTML = '<strong>Seçilen Dosyalar:</strong><br>';
+            for (let file of files) {
+                const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                infoHTML += `📁 ${file.name} (${fileSize} MB)<br>`;
+            }
+            fileInfo.innerHTML = infoHTML;
+            fileInfo.style.display = 'block';
+        }
+
+        // Sürükle-bırak
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#5a67d8';
+            uploadArea.style.background = '#e8ebff';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#667eea';
+            uploadArea.style.background = '#f8f9ff';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#667eea';
+            uploadArea.style.background = '#f8f9ff';
+            
+            const files = e.dataTransfer.files;
+            fileInput.files = files;
+            showPreview(files);
+            showFileInfo(files);
+        });
+
+        // Evrak yükleme
+        function uploadDocument() {
+            const files = fileInput.files;
+            const customerName = document.getElementById('customerName').value;
+            const customerEmail = document.getElementById('customerEmail').value;
+            const documentType = document.getElementById('documentType').value;
+            
+            if (files.length === 0) {
+                alert("Lütfen en az bir dosya seçin!");
+                return;
+            }
+            
+            if (!customerName || !customerEmail) {
+                alert("Lütfen müşteri bilgilerini eksiksiz doldurun!");
+                return;
+            }
+
+            // Başarı mesajını göster
+            successMessage.style.display = 'block';
+            
+            // Formu temizle (3 saniye sonra)
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+                fileInput.value = '';
+                document.getElementById('customerName').value = '';
+                document.getElementById('customerEmail').value = '';
+                document.getElementById('documentType').value = '';
+                previewArea.innerHTML = '';
+                fileInfo.style.display = 'none';
+                
+                alert('Evrak yükleme işlemi tamamlandı! Gerçek bir sistemde dosyalar sunucuya kaydedilir.');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
