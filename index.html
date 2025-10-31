@@ -336,11 +336,6 @@
             </div>
             
             <div class="form-group">
-                <label for="customerEmail">📧 E-posta Adresi:</label>
-                <input type="email" id="customerEmail" placeholder="ornek@email.com">
-            </div>
-            
-            <div class="form-group">
                 <label for="customerPhone">📞 Telefon Numarası:</label>
                 <input type="tel" id="customerPhone" placeholder="05XX XXX XX XX">
             </div>
@@ -556,7 +551,6 @@
         function saveDocument() {
             const files = document.getElementById('fileInput').files;
             const customerName = document.getElementById('customerName').value;
-            const customerEmail = document.getElementById('customerEmail').value;
             const customerPhone = document.getElementById('customerPhone').value;
             const documentType = document.getElementById('documentType').value;
             
@@ -565,8 +559,8 @@
                 return;
             }
             
-            if (!customerName || !customerEmail || !documentType) {
-                alert("Lütfen zorunlu alanları doldurun! (Ad, E-posta, Evrak Türü)");
+            if (!customerName || !documentType) {
+                alert("Lütfen zorunlu alanları doldurun! (Ad, Evrak Türü)");
                 return;
             }
 
@@ -597,7 +591,6 @@
                     id: Date.now(),
                     date: new Date().toLocaleString('tr-TR'),
                     customerName,
-                    customerEmail,
                     customerPhone,
                     documentType,
                     files: fileData
@@ -617,7 +610,6 @@
                     successMessage.style.display = 'none';
                     document.getElementById('fileInput').value = '';
                     document.getElementById('customerName').value = '';
-                    document.getElementById('customerEmail').value = '';
                     document.getElementById('customerPhone').value = '';
                     document.getElementById('documentType').value = '';
                     document.getElementById('previewArea').innerHTML = '';
@@ -679,7 +671,7 @@
                     <div class="document-info">
                         <strong>${doc.customerName}</strong>
                         <div style="color: #666; font-size: 0.9em;">
-                            ${doc.customerEmail} | ${doc.customerPhone || 'Tel yok'}
+                            ${doc.customerPhone || 'Tel yok'}
                         </div>
                         <div style="color: #888; font-size: 0.8em;">
                             ${doc.date} - ${doc.documentType}
@@ -710,7 +702,7 @@
                 new Date(doc.id).toLocaleDateString('tr-TR') === today
             );
             const totalFiles = documents.reduce((sum, doc) => sum + doc.files.length, 0);
-            const uniqueCustomers = new Set(documents.map(doc => doc.customerEmail)).size;
+            const uniqueCustomers = new Set(documents.map(doc => doc.customerName)).size;
 
             document.getElementById('totalDocuments').textContent = documents.length;
             document.getElementById('todayDocuments').textContent = todayDocuments.length;
