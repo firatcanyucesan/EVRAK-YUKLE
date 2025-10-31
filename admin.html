@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Paneli - Evrak Yükleme Sistemi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .login-form {
+            display: none;
+        }
+
+        .admin-panel {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .document-list {
+            margin-top: 30px;
+        }
+
+        .document-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .document-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .document-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .document-info {
+            flex-grow: 1;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .file-list {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Giriş Ekranı -->
+    <div class="login-container" id="loginScreen">
+        <h2>🔐 Admin Girişi</h2>
+        <p style="margin-bottom: 20px; color: #666;">Lütfen admin şifrenizi giriniz</p>
+        
+        <div class="error-message" id="loginError">Hatalı şifre! Lütfen tekrar deneyin.</div>
+        
+        <div class="form-group">
+            <input type="password" id="adminPassword" placeholder="Admin şifresini girin" onkeypress="handleEnterKey(event)">
+        </div>
+        <button class="btn" onclick="checkPassword()">Giriş Yap</button>
+        <br><br>
+        <button class="btn btn-back" onclick="goBack()">⬅️ Ana Sayfaya Dön</button>
+    </div>
+
+    <!-- Admin Paneli -->
+    <div class="container admin-panel" id="adminPanel">
+        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 30px;">
+            <h1>📊 Admin Paneli</h1>
+            <div>
+                <button class="btn btn-success" onclick="refreshData()">🔄 Yenile</button>
+                <button class="btn btn-danger" onclick="clearAllData()">🗑️ Tümünü Sil</button>
+                <button class="btn btn-back" onclick="goBack()">⬅️ Ana Sayfa</button>
+            </div>
+        </div>
+
+        <div class="success-message" id="successMessage">İşlem başarıyla tamamlandı!</div>
+
+        <!-- İstatistikler -->
+        <div class="stats" id="statsSection">
+            <div class="stat-card">
+                <div class="stat-number" id="totalDocuments">0</div>
+                <div>Toplam Evrak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayDocuments">0</div>
+                <div>Bugünkü Evraklar</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalFiles">0</div>
+                <div>Toplam Dosya</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalCustomers">0</div>
+                <div>Toplam Müşteri</div>
+            </div>
+        </div>
+
+        <!-- Evrak Listesi -->
+        <div class="document-list" id="documentList">
+            <h3 style="margin-bottom: 20px;">📋 Evrak Listesi</h3>
+            <div id="documentsContainer">
+                <!-- Evraklar buraya eklenecek -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASSWORD = "firat123*";
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            showLoginScreen();
+        });
+
+        // Giriş ekranını göster
+        function showLoginScreen() {
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('loginError').style.display = 'none';
+        }
+
+        // Admin panelini göster
+        function showAdminPanel() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            loadDocuments();
+        }
+
+        // Şifre kontrolü
+        function checkPassword() {
+            const password = document.getElementById('adminPassword').value;
+            if (password === ADMIN_PASSWORD) {
+                showAdminPanel();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+                document.getElementById('adminPassword').value = '';
+            }
+        }
+
+        // Enter tuşu ile giriş
+        function handleEnterKey(event) {
+            if (event.key === 'Enter') {
+                checkPassword();
+            }
+        }
+
+        // Ana sayfaya dön
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // Evrakları yükle
+        function loadDocuments() {
+            const documents = JSON.parse(localStorage.getItem('documents')) || [];
+            const container = document.getElementById('documentsContainer');
+            
+            if (documents.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📭</div>
+                        <h3>Henüz evrak bulunmuyor</h3>
+                        <p>Müşteriler evrak yükledikçe burada görünecek</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+                documents.reverse().forEach(doc => {
+                    const documentElement = createDocumentElement(doc);
+                    container.appendChild(documentElement);
+                });
+            }
+            
+            updateStats(documents);
+        }
+
+        // Evrak kartı oluştur
+        function createDocumentElement(doc) {
+            const div = document.createElement('div');
+            div.className = 'document-item';
+            div.innerHTML = `
+                <div class="document-header">
+                    <div class="document-info">
+                        <strong>${doc.customerName}</strong>
+                        <div style="color: #666; font-size: 0.9em;">
+                            ${doc.customerEmail} | ${doc.customerPhone || 'Tel yok'}
+                        </div>
+                        <div style="color: #888; font-size: 0.8em;">
+                            ${doc.date} - ${doc.documentType}
+                        </div>
+                    </div>
+                    <div class="document-actions">
+                        <button class="btn btn-success" onclick="downloadDocument(${doc.id})">📥 İndir</button>
+                        <button class="btn btn-danger" onclick="deleteDocument(${doc.id})">🗑️ Sil</button>
+                    </div>
+                </div>
+                <div class="file-list">
+                    <strong>Dosyalar:</strong>
+                    ${doc.files.map(file => `
+                        <div class="file-item">
+                            <span>${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                            <button class="btn" onclick="downloadFile('${file.name}', '${file.data}')">📥</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            return div;
+        }
+
+        // İstatistikleri güncelle
+        function updateStats(documents) {
+            const today = new Date().toLocaleDateString('tr-TR');
+            const todayDocuments = documents.filter(doc => 
+                new Date(doc.id).toLocaleDateString('tr-TR') === today
+            );
+            const totalFiles = documents.reduce((sum, doc) => sum + doc.files.length, 0);
+            const uniqueCustomers = new Set(documents.map(doc => doc.customerEmail)).size;
+
+            document.getElementById('totalDocuments').textContent = documents.length;
+            document.getElementById('todayDocuments').textContent = todayDocuments.length;
+            document.getElementById('totalFiles').textContent = totalFiles;
+            document.getElementById('totalCustomers').textContent = uniqueCustomers;
+        }
+
+        // Dosya indirme
+        function downloadFile(filename, dataUrl) {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = filename;
+            link.click();
+        }
+
+        // Tüm evrakı indirme
+        function downloadDocument(docId) {
+            const documents = JSON.parse(localStorage.getItem('documents')) || [];
+            const doc = documents.find(d => d.id === docId);
+            if (doc) {
+                // İlk dosyayı indir
+                if (doc.files.length > 0) {
+                    downloadFile(doc.files[0].name, doc.files[0].data);
+                }
+            }
+        }
+
+        // Evrak silme
+        function deleteDocument(docId) {
+            if (confirm('Bu evrakı silmek istediğinizden emin misiniz?')) {
+                let documents = JSON.parse(localStorage.getItem('documents')) || [];
+                documents = documents.filter(d => d.id !== docId);
+                localStorage.setItem('documents', JSON.stringify(documents));
+                showMessage('Evrak başarıyla silindi!');
+                loadDocuments();
+            }
+        }
+
+        // Tüm verileri temizle
+        function clearAllData() {
+            if (confirm('TÜM evrak verilerini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+                localStorage.removeItem('documents');
+                showMessage('Tüm veriler temizlendi!');
+                loadDocuments();
+            }
+        }
+
+        // Verileri yenile
+        function refreshData() {
+            loadDocuments();
+            showMessage('Veriler yenilendi!');
+        }
+
+        // Mesaj göster
+        function showMessage(message) {
+            const messageEl = document.getElementById('successMessage');
+            messageEl.textContent = message;
+            messageEl.style.display = 'block';
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
