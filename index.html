@@ -423,6 +423,8 @@
     </div>
 
     <script>
+        // GLOBAL DEĞİŞKEN - Tüm veriler burada saklanacak
+        let allDocuments = [];
         const ADMIN_PASSWORD = "firat123*";
         let stream = null;
 
@@ -596,10 +598,8 @@
                     files: fileData
                 };
 
-                // LocalStorage'a kaydet
-                let existingDocuments = JSON.parse(localStorage.getItem('documents')) || [];
-                existingDocuments.push(documentData);
-                localStorage.setItem('documents', JSON.stringify(existingDocuments));
+                // GLOBAL diziye kaydet (LocalStorage YOK!)
+                allDocuments.push(documentData);
 
                 // Başarı mesajı
                 const successMessage = document.getElementById('successMessage');
@@ -640,10 +640,9 @@
 
         // Admin verilerini yükle
         function loadAdminData() {
-            const documents = JSON.parse(localStorage.getItem('documents')) || [];
             const container = document.getElementById('documentsContainer');
             
-            if (documents.length === 0) {
+            if (allDocuments.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div style="font-size: 48px; margin-bottom: 20px;">📭</div>
@@ -653,13 +652,14 @@
                 `;
             } else {
                 container.innerHTML = '';
-                documents.reverse().forEach(doc => {
+                // En yeni evraklar üstte görünsün
+                [...allDocuments].reverse().forEach(doc => {
                     const documentElement = createDocumentElement(doc);
                     container.appendChild(documentElement);
                 });
             }
             
-            updateAdminStats(documents);
+            updateAdminStats();
         }
 
         // Evrak kartı oluştur
@@ -696,15 +696,15 @@
         }
 
         // İstatistikleri güncelle
-        function updateAdminStats(documents) {
+        function updateAdminStats() {
             const today = new Date().toLocaleDateString('tr-TR');
-            const todayDocuments = documents.filter(doc => 
+            const todayDocuments = allDocuments.filter(doc => 
                 new Date(doc.id).toLocaleDateString('tr-TR') === today
             );
-            const totalFiles = documents.reduce((sum, doc) => sum + doc.files.length, 0);
-            const uniqueCustomers = new Set(documents.map(doc => doc.customerName)).size;
+            const totalFiles = allDocuments.reduce((sum, doc) => sum + doc.files.length, 0);
+            const uniqueCustomers = new Set(allDocuments.map(doc => doc.customerName)).size;
 
-            document.getElementById('totalDocuments').textContent = documents.length;
+            document.getElementById('totalDocuments').textContent = allDocuments.length;
             document.getElementById('todayDocuments').textContent = todayDocuments.length;
             document.getElementById('totalFiles').textContent = totalFiles;
             document.getElementById('totalCustomers').textContent = uniqueCustomers;
@@ -720,8 +720,7 @@
 
         // Tüm evrakı indirme
         function downloadDocument(docId) {
-            const documents = JSON.parse(localStorage.getItem('documents')) || [];
-            const doc = documents.find(d => d.id === docId);
+            const doc = allDocuments.find(d => d.id === docId);
             if (doc && doc.files.length > 0) {
                 downloadFile(doc.files[0].name, doc.files[0].data);
             }
@@ -730,9 +729,7 @@
         // Evrak silme
         function deleteDocument(docId) {
             if (confirm('Bu evrakı silmek istediğinizden emin misiniz?')) {
-                let documents = JSON.parse(localStorage.getItem('documents')) || [];
-                documents = documents.filter(d => d.id !== docId);
-                localStorage.setItem('documents', JSON.stringify(documents));
+                allDocuments = allDocuments.filter(d => d.id !== docId);
                 showAdminMessage('Evrak başarıyla silindi!');
                 loadAdminData();
             }
@@ -741,7 +738,7 @@
         // Tüm verileri temizle
         function clearAllData() {
             if (confirm('TÜM evrak verilerini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
-                localStorage.removeItem('documents');
+                allDocuments = [];
                 showAdminMessage('Tüm veriler temizlendi!');
                 loadAdminData();
             }
