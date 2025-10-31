@@ -80,6 +80,10 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
+        .camera-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -119,6 +123,18 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
+        .camera-container {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #cameraPreview {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
         .success-message {
             background: #d1fae5;
             color: #065f46;
@@ -150,7 +166,23 @@
             <p><small>PDF, JPG, PNG desteklenir (Maksimum: 10MB)</small></p>
         </div>
 
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="btn" onclick="document.getElementById('fileInput').click()">
+                📎 Dosya Seç
+            </button>
+            <button class="btn camera-btn" onclick="openCamera()">
+                📷 Kamera ile Çek
+            </button>
+        </div>
+
         <input type="file" id="fileInput" class="file-input" accept=".pdf,.jpg,.jpeg,.png" multiple>
+
+        <div class="camera-container" id="cameraContainer">
+            <video id="cameraPreview" autoplay playsinline></video>
+            <br>
+            <button class="btn camera-btn" onclick="capturePhoto()" id="captureBtn">📸 Fotoğrafı Çek</button>
+            <button class="btn" onclick="closeCamera()" id="closeCameraBtn">❌ Kamerayı Kapat</button>
+        </div>
 
         <div class="form-group">
             <label for="customerName">👤 Müşteri Adı Soyadı:</label>
@@ -167,14 +199,14 @@
             <input type="text" id="documentType" placeholder="Kimlik, Fatura, Sözleşme, vb.">
         </div>
 
-        <button class="btn" onclick="uploadDocument()" style="width: 100%; padding: 15px; font-size: 18px;">
-            📤 Evrakı Gönder
+        <button class="btn" onclick="goToGoogleForms()" style="width: 100%; padding: 15px; font-size: 18px;">
+            📤 Google Forms ile Gönder
         </button>
         
         <div class="preview" id="previewArea"></div>
         <div class="file-info" id="fileInfo"></div>
         <div class="success-message" id="successMessage">
-            ✅ Evrakınız başarıyla yüklendi! En kısa sürede sizinle iletişime geçeceğiz.
+            ✅ Google Forms'a yönlendiriliyorsunuz...
         </div>
     </div>
 
@@ -184,6 +216,9 @@
         const previewArea = document.getElementById('previewArea');
         const fileInfo = document.getElementById('fileInfo');
         const successMessage = document.getElementById('successMessage');
+        const cameraContainer = document.getElementById('cameraContainer');
+        const cameraPreview = document.getElementById('cameraPreview');
+        let stream = null;
 
         // Dosya seçildiğinde
         fileInput.addEventListener('change', function(e) {
@@ -225,6 +260,81 @@
             fileInfo.style.display = 'block';
         }
 
+        // Kamera açma
+        async function openCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                cameraPreview.srcObject = stream;
+                cameraContainer.style.display = 'block';
+            } catch (err) {
+                alert('Kamera erişim izni gerekiyor. Lütfen tarayıcı ayarlarından kameraya izin verin.');
+                console.error('Kamera hatası:', err);
+            }
+        }
+
+        // Fotoğraf çekme
+        function capturePhoto() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = cameraPreview.videoWidth;
+            canvas.height = cameraPreview.videoHeight;
+            context.drawImage(cameraPreview, 0, 0);
+            
+            canvas.toBlob(function(blob) {
+                const file = new File([blob], 'kamera-fotoğrafı-' + new Date().getTime() + '.jpg', { 
+                    type: 'image/jpeg' 
+                });
+                
+                // Dosya listesine ekle
+                const dataTransfer = new DataTransfer();
+                if (fileInput.files) {
+                    for (let i = 0; i < fileInput.files.length; i++) {
+                        dataTransfer.items.add(fileInput.files[i]);
+                    }
+                }
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                
+                // Önizleme göster
+                showPreview(fileInput.files);
+                showFileInfo(fileInput.files);
+                
+                // Kamerayı kapat
+                closeCamera();
+            }, 'image/jpeg', 0.8);
+        }
+
+        // Kamerayı kapat
+        function closeCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            cameraContainer.style.display = 'none';
+        }
+
+        // Google Forms'a git
+        function goToGoogleForms() {
+            const customerName = document.getElementById('customerName').value;
+            const customerEmail = document.getElementById('customerEmail').value;
+            const documentType = document.getElementById('documentType').value;
+            
+            if (!customerName || !customerEmail) {
+                alert("Lütfen müşteri bilgilerini eksiksiz doldurun!");
+                return;
+            }
+
+            successMessage.style.display = 'block';
+            
+            // 2 saniye sonra Google Forms'a yönlendir
+            setTimeout(() => {
+                // BURAYA GOOGLE FORMS LİNKİNİZİ YAZACAĞIZ
+                const googleFormsLink = "https://forms.google.com/your-form-link-here";
+                window.open(googleFormsLink, '_blank');
+            }, 2000);
+        }
+
         // Sürükle-bırak
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -247,40 +357,6 @@
             showPreview(files);
             showFileInfo(files);
         });
-
-        // Evrak yükleme
-        function uploadDocument() {
-            const files = fileInput.files;
-            const customerName = document.getElementById('customerName').value;
-            const customerEmail = document.getElementById('customerEmail').value;
-            const documentType = document.getElementById('documentType').value;
-            
-            if (files.length === 0) {
-                alert("Lütfen en az bir dosya seçin!");
-                return;
-            }
-            
-            if (!customerName || !customerEmail) {
-                alert("Lütfen müşteri bilgilerini eksiksiz doldurun!");
-                return;
-            }
-
-            // Başarı mesajını göster
-            successMessage.style.display = 'block';
-            
-            // Formu temizle (3 saniye sonra)
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-                fileInput.value = '';
-                document.getElementById('customerName').value = '';
-                document.getElementById('customerEmail').value = '';
-                document.getElementById('documentType').value = '';
-                previewArea.innerHTML = '';
-                fileInfo.style.display = 'none';
-                
-                alert('Evrak yükleme işlemi tamamlandı! Gerçek bir sistemde dosyalar sunucuya kaydedilir.');
-            }, 3000);
-        }
     </script>
 </body>
 </html>
